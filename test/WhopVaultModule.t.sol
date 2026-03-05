@@ -33,12 +33,7 @@ interface IRolesAuthority {
 
     function setUserRole(address user, uint8 role, bool enabled) external;
 
-    function setRoleCapability(
-        uint8 role,
-        address target,
-        bytes4 functionSig,
-        bool enabled
-    ) external;
+    function setRoleCapability(uint8 role, address target, bytes4 functionSig, bool enabled) external;
 }
 
 interface IAuth {
@@ -47,15 +42,12 @@ interface IAuth {
 
 contract WhopVaultModuleTest is Test {
     // ── Mainnet addresses ──────────────────────────────────────────────
-    address constant BORING_VAULT =
-        0xd1074E0AE85610dDBA0147e29eBe0D8E5873a000;
+    address constant BORING_VAULT = 0xd1074E0AE85610dDBA0147e29eBe0D8E5873a000;
     address constant TELLER = 0x4E7d2186eB8B75fBDcA867761636637E05BaeF1E;
     address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
-    address constant SAFE_SINGLETON =
-        0x41675C099F32341bf84BFc5382aF534df5C7461a;
-    address constant SAFE_PROXY_FACTORY =
-        0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67;
+    address constant SAFE_SINGLETON = 0x41675C099F32341bf84BFc5382aF534df5C7461a;
+    address constant SAFE_PROXY_FACTORY = 0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67;
 
     address constant USDT_WHALE = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
 
@@ -96,10 +88,7 @@ contract WhopVaultModuleTest is Test {
 
         (bool ok, bytes memory ret) = SAFE_PROXY_FACTORY.call(
             abi.encodeWithSignature(
-                "createProxyWithNonce(address,bytes,uint256)",
-                SAFE_SINGLETON,
-                setupData,
-                block.timestamp
+                "createProxyWithNonce(address,bytes,uint256)", SAFE_SINGLETON, setupData, block.timestamp
             )
         );
         require(ok, "Safe proxy creation failed");
@@ -124,13 +113,7 @@ contract WhopVaultModuleTest is Test {
         // ── Fund the Safe with USDT ─────────────────────────────────
         uint256 fundAmount = 100_000 * 1e6;
         vm.prank(USDT_WHALE);
-        (bool txOk,) = USDT.call(
-            abi.encodeWithSignature(
-                "transfer(address,uint256)",
-                address(safe),
-                fundAmount
-            )
-        );
+        (bool txOk,) = USDT.call(abi.encodeWithSignature("transfer(address,uint256)", address(safe), fundAmount));
         require(txOk, "USDT funding failed");
         assertGe(IERC20(USDT).balanceOf(address(safe)), fundAmount);
     }
@@ -245,9 +228,7 @@ contract WhopVaultModuleTest is Test {
         IRolesAuthority auth = IRolesAuthority(authority);
         address authOwner = auth.owner();
 
-        bytes4 bulkWithdrawSig = bytes4(
-            keccak256("bulkWithdraw(address,uint256,uint256,address)")
-        );
+        bytes4 bulkWithdrawSig = bytes4(keccak256("bulkWithdraw(address,uint256,uint256,address)"));
 
         vm.startPrank(authOwner);
         auth.setRoleCapability(SOLVER_ROLE, TELLER, bulkWithdrawSig, true);

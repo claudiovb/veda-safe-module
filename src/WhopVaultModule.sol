@@ -6,28 +6,21 @@ import {Enum} from "@safe/libraries/Enum.sol";
 
 /// @dev Minimal interface for Safe module execution.
 interface IGnosisSafe {
-    function execTransactionFromModule(
-        address to,
-        uint256 value,
-        bytes memory data,
-        Enum.Operation operation
-    ) external returns (bool success);
+    function execTransactionFromModule(address to, uint256 value, bytes memory data, Enum.Operation operation)
+        external
+        returns (bool success);
 }
 
 /// @dev Minimal interface for Veda's TellerWithMultiAssetSupport.
 interface ITeller {
-    function deposit(
-        IERC20 depositAsset,
-        uint256 depositAmount,
-        uint256 minimumMint
-    ) external payable returns (uint256 shares);
+    function deposit(IERC20 depositAsset, uint256 depositAmount, uint256 minimumMint)
+        external
+        payable
+        returns (uint256 shares);
 
-    function bulkWithdraw(
-        IERC20 withdrawAsset,
-        uint256 shareAmount,
-        uint256 minimumAssets,
-        address to
-    ) external returns (uint256 assetsOut);
+    function bulkWithdraw(IERC20 withdrawAsset, uint256 shareAmount, uint256 minimumAssets, address to)
+        external
+        returns (uint256 assetsOut);
 
     function vault() external view returns (address);
 }
@@ -88,12 +81,7 @@ contract WhopVaultModule {
     /// @param token    ERC20 token to deposit (e.g. USDT).
     /// @param amount   Amount in token decimals.
     /// @param teller   Whitelisted Teller contract address.
-    function depositToVault(
-        address safeAddr,
-        address token,
-        uint256 amount,
-        address teller
-    ) external onlyWhopBackend {
+    function depositToVault(address safeAddr, address token, uint256 amount, address teller) external onlyWhopBackend {
         if (!whitelistedTellers[teller]) revert TellerNotWhitelisted();
 
         address vault = ITeller(teller).vault();
@@ -103,16 +91,7 @@ contract WhopVaultModule {
         _exec(safeAddr, token, abi.encodeWithSelector(IERC20.approve.selector, vault, amount));
 
         // Deposit through the Teller — shares are minted to the Safe.
-        _exec(
-            safeAddr,
-            teller,
-            abi.encodeWithSelector(
-                ITeller.deposit.selector,
-                IERC20(token),
-                amount,
-                uint256(0)
-            )
-        );
+        _exec(safeAddr, teller, abi.encodeWithSelector(ITeller.deposit.selector, IERC20(token), amount, uint256(0)));
 
         // Clear residual approval. If deposit consumed less than `amount` (e.g. vault cap,
         // rounding), leftover approval on the vault would persist. Reset to 0 for safety.
@@ -126,12 +105,10 @@ contract WhopVaultModule {
     /// @param token    ERC20 asset to receive (e.g. USDT).
     /// @param teller   Whitelisted Teller contract address.
     /// @param shares   Number of vault shares to redeem.
-    function withdrawFromVault(
-        address safeAddr,
-        address token,
-        address teller,
-        uint256 shares
-    ) external onlyWhopBackend {
+    function withdrawFromVault(address safeAddr, address token, address teller, uint256 shares)
+        external
+        onlyWhopBackend
+    {
         if (!whitelistedTellers[teller]) revert TellerNotWhitelisted();
 
         // safeAddr is both the caller of bulkWithdraw (via execTransactionFromModule)
@@ -139,21 +116,13 @@ contract WhopVaultModule {
         _exec(
             safeAddr,
             teller,
-            abi.encodeWithSelector(
-                ITeller.bulkWithdraw.selector,
-                IERC20(token),
-                shares,
-                uint256(0),
-                safeAddr
-            )
+            abi.encodeWithSelector(ITeller.bulkWithdraw.selector, IERC20(token), shares, uint256(0), safeAddr)
         );
     }
 
     /// @dev Execute a call from the given Safe via the module interface.
     function _exec(address safeAddr, address to, bytes memory data) internal {
-        bool success = IGnosisSafe(safeAddr).execTransactionFromModule(
-            to, 0, data, Enum.Operation.Call
-        );
+        bool success = IGnosisSafe(safeAddr).execTransactionFromModule(to, 0, data, Enum.Operation.Call);
         require(success, "module exec failed");
     }
 }
